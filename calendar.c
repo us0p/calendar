@@ -1,5 +1,6 @@
 // Copyright 2024 Luan Lopes
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -18,10 +19,16 @@ void printHeader(struct tm start) {
   printf("Sun Mon Tue Wed Thu Fri Sat\n");
 }
 
-void printCurrentMonth() {
+time_t getToday(struct tm *t) {
   time_t epochSecondsToday = time(NULL);
+  if (t)
+    localtime_r(&epochSecondsToday, t);
+  return epochSecondsToday;
+}
+
+void printCurrentMonth() {
   struct tm today, month;
-  localtime_r(&epochSecondsToday, &today);
+  time_t epochSecondsToday = getToday(&today);
 
   const time_t secondsInADay = 60 * 60 * 24;
   time_t daysPassedInSeconds = (today.tm_mday - 1) * secondsInADay;
@@ -47,6 +54,18 @@ void printCurrentMonth() {
     localtime_r(&epochSecondsMonth, &month);
   }
   printf("\n");
+}
+
+void printMonth(int month) {
+  struct tm today;
+  getToday(&today);
+  char dateStr[11];
+  sprintf(dateStr, "01/%02d/%d", month, today.tm_year);
+  getdate(dateStr);
+  if (getdate_err != 0) {
+    fprintf(stderr, "Failed to getdate() from string %s\n", dateStr);
+    exit(1);
+  }
 }
 
 int main(int argc, char *argv[]) { printCurrentMonth(); }
