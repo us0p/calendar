@@ -3,3 +3,4 @@
 - [Make getdate and some other functions available](https://stackoverflow.com/questions/32331269/when-is-getdate-and-strptime-not-included-in-time-h)
 - [exit(), abort(), assert() functions](https://www.geeksforgeeks.org/c-exit-abort-and-assert-functions/)
 - [cdatetime](https://www.geeksforgeeks.org/c-exit-abort-and-assert-functions/)
+- [prinf()](https://cplusplus.com/reference/cstdio/printf/)
