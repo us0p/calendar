@@ -4,3 +4,7 @@
 - [exit(), abort(), assert() functions](https://www.geeksforgeeks.org/c-exit-abort-and-assert-functions/)
 - [cdatetime](https://www.geeksforgeeks.org/c-exit-abort-and-assert-functions/)
 - [prinf()](https://cplusplus.com/reference/cstdio/printf/)
+
+# Todo
+- add positional argument to commands.
+- implement command/option value matching with argv.

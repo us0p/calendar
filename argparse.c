@@ -1,28 +1,8 @@
 // Copyright 2024 Luan Lopes
+#include "./argparse.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-struct option {
-  char *shortName;
-  char *longName;
-  char *help;
-};
-
-struct command {
-  char *command;
-  char *help;
-  int optionCount;
-  struct option *options[];
-};
-
-// should also receive options;
-struct cli {
-  char *name;
-  char *help;
-  int commandCount;
-  struct command *commands[];
-};
 
 struct option *optionFactory(char *shortName, char *longName, char *help) {
   struct option *op = malloc(sizeof(struct option));
@@ -36,77 +16,127 @@ struct option *optionFactory(char *shortName, char *longName, char *help) {
   return op;
 }
 
-struct command *commandFactory(char *command, char *help, struct option *opts[],
+struct command *commandFactory(char *command, char *help, struct option **opts,
                                int opCount) {
-  struct command *cm =
-      malloc(sizeof(struct command) + opCount * sizeof(struct option));
+  struct command *cm = malloc(sizeof(struct command));
   if (cm == NULL) {
     fprintf(stderr, "Failed to malloc commandFactory().\n");
     exit(1);
   }
   cm->command = command;
   cm->help = help;
-  memcpy(cm->options, opts, opCount);
+  cm->optionCount = opCount;
+  cm->options = opts;
   return cm;
 }
 
-struct cli *cliFactory(char *name, char *help, struct command *commands[],
-                       int commandCount) {
-  struct cli *commandLine =
-      malloc(sizeof(struct cli) + commandCount * sizeof(struct command));
+struct cli *cliFactory(char *name, char *help, struct command **commands,
+                       int commandCount, struct option **opts, int optCount) {
+  struct cli *commandLine = malloc(sizeof(struct cli));
   if (commandLine == NULL) {
     fprintf(stderr, "Failed to malloc cliFactory().\n");
     exit(1);
   }
   commandLine->name = name;
   commandLine->help = help;
-  memcpy(commandLine->commands, commands, commandCount);
+  commandLine->commandCount = commandCount;
+  commandLine->commands = commands;
+  commandLine->options = opts;
+  commandLine->optionCount = optCount;
   return commandLine;
 }
 
-enum objectType { CLI, COMMAND, OPTION };
-
-void printCli(struct cli *commandLine) {
-  char *cliCommands[commandLine->commandCount];
-  char *commandDescription[commandLine->commandCount];
-
-  for (int i = 0; i < commandLine->commandCount; i++) {
-    struct command *cmd = commandLine->commands[i];
-    cliCommands[i] = cmd->command;
-    commandDescription[i] = cmd->help;
+int getBiggestArgumentLen(struct command *cmds[], int cmdCount) {
+  int max = 0;
+  for (int i = 0; i < cmdCount; i++) {
+    int cmdLen = strlen(cmds[i]->command);
+    if (cmdLen > max)
+      max = cmdLen;
   }
+  return max;
+}
 
-  printf("usage: %s [-h] ", commandLine->name);
-
-  printf("{");
-  for (int i = 0; i < commandLine->commandCount; i++) {
-    printf("%s", cliCommands[i]);
-    if (i + 1 < commandLine->commandCount) {
-      printf(",");
-    }
+int getBiggestOptsLen(struct option *opts[], int optCount) {
+  int max = 0;
+  for (int i = 0; i < optCount; i++) {
+    int sLen = strlen(opts[i]->shortName);
+    int lLen = strlen(opts[i]->longName);
+    int commaSpaceLen = 2;
+    int totalLen = sLen + commaSpaceLen + lLen;
+    if (totalLen > max)
+      max = totalLen;
   }
-  printf("} ...\n");
-  printf("\n");
-  printf("%s\n", commandLine->help);
-  printf("\n");
-  printf("positional arguments:\n");
-  for (int i = 0; i < commandLine->commandCount; i++) {
-    printf("    %s\n", cliCommands[i]);
+  return max;
+}
+
+void printSpaces(int times) {
+  for (int j = 0; j < times; j++) {
+    printf(" ");
   }
 }
 
-void printHelp(const void *object, enum objectType objType) {
+void printOptions(struct option *opts[], int optCount) {
+  puts("options:");
+  int biggestOptLen = getBiggestOptsLen(opts, optCount);
+  biggestOptLen = biggestOptLen > 10 ? biggestOptLen : 10;
+  for (int i = 0; i < optCount; i++) {
+    struct option *opt = opts[i];
+    int lLen = strlen(opt->longName);
+    int sLen = strlen(opt->shortName);
+    int commaSpaceLen = 2;
+    int totalLen = sLen + commaSpaceLen + lLen;
+    int extraSpaces = biggestOptLen - totalLen;
+    printf("   %s, %s", opt->shortName, opt->longName);
+    printSpaces(extraSpaces + DEFAULT_HELP_SPACES);
+    printf("%s\n", opt->help);
+  }
+  printf("   -h, --help");
+  printSpaces(biggestOptLen - 10 + DEFAULT_HELP_SPACES);
+  printf("Prints this help message.\n");
+}
+
+void printCli(struct cli *commandLine) {
+  printf("usage: %s [OPTIONS] [ARGUMENTS]\n", commandLine->name);
+  printf("\n");
+
+  printf("%s\n", commandLine->help);
+  printf("\n");
+
+  printf("positional arguments:\n");
+  int biggestArgLen =
+      getBiggestArgumentLen(commandLine->commands, commandLine->commandCount);
+  for (int i = 0; i < commandLine->commandCount; i++) {
+    struct command *cmd = commandLine->commands[i];
+    int extraSpaces = biggestArgLen - strlen(cmd->command);
+    printf("    %s", cmd->command);
+    printSpaces(extraSpaces + DEFAULT_HELP_SPACES);
+    printf("%s\n", cmd->help);
+  }
+  printf("\n");
+
+  printOptions(commandLine->options, commandLine->optionCount);
+}
+
+void printCommand(struct command *cmd, char *appName) {
+  printf("usage: %s [OPTIONS] %s ... [OPTIONS]\n", appName, cmd->command);
+  printf("\n");
+
+  printf("%s\n", cmd->help);
+  printf("\n");
+
+  printOptions(cmd->options, cmd->optionCount);
+}
+
+void printHelp(const void *object, enum objectType objType, char *appName) {
   switch (objType) {
   case CLI: {
     struct cli *commandLine = (struct cli *)object;
+    printCli(commandLine);
     break;
   }
   case COMMAND: {
     struct command *cmd = (struct command *)object;
-    break;
-  }
-  case OPTION: {
-    struct option *opt = (struct option *)object;
+    printCommand(cmd, appName);
     break;
   }
   default: {
