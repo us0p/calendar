@@ -6,5 +6,4 @@
 - [prinf()](https://cplusplus.com/reference/cstdio/printf/)
 
 # Todo
-- add positional argument to commands.
-- implement command/option value matching with argv.
+- refactor matchValues function.
